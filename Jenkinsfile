@@ -5,11 +5,9 @@ pipeline {
     environment {
 
         HEADLESS = 'true'
-
     }
 
     stages {
-
 
         stage('Checkout Code') {
 
@@ -17,145 +15,112 @@ pipeline {
 
                 checkout scm
 
-                echo "Code downloaded successfully"
+                echo 'Code downloaded successfully'
             }
         }
-
 
         stage('Install Dependencies') {
 
             steps {
 
-                sh '''
+                bat '''
+                    python -m venv .venv
 
-                    python3 -m venv venv
+                    call .venv\\Scripts\\activate
 
-                    . venv/bin/activate
-
-                    pip install --upgrade pip
+                    python -m pip install --upgrade pip
 
                     pip install -r requirements.txt
-
                 '''
             }
         }
-
 
         stage('Run API Tests') {
 
             steps {
 
-                sh '''
+                bat '''
+                    call .venv\\Scripts\\activate
 
-                    . venv/bin/activate
-
-                    pytest tests/test_api_notes.py \
-                    -v -m api \
-                    --alluredir=reports/allure-results
-
+                    pytest tests/test_api_notes.py -v --alluredir=reports/allure-results
                 '''
             }
         }
-
 
         stage('Run UI Login Tests') {
 
             steps {
 
-                sh '''
+                bat '''
+                    call .venv\\Scripts\\activate
 
-                    . venv/bin/activate
-
-                    pytest tests/test_ui_login.py \
-                    -v \
-                    --alluredir=reports/allure-results
-
+                    pytest tests/test_ui_login.py -v --alluredir=reports/allure-results
                 '''
             }
         }
-
 
         stage('Run UI Notes Tests') {
 
             steps {
 
-                sh '''
+                bat '''
+                    call .venv\\Scripts\\activate
 
-                    . venv/bin/activate
-
-                    pytest tests/test_ui_notes.py \
-                    -v \
-                    --alluredir=reports/allure-results
-
+                    pytest tests/test_ui_notes.py -v --alluredir=reports/allure-results
                 '''
             }
         }
-
 
         stage('Run E2E Tests') {
 
             steps {
 
-                sh '''
+                bat '''
+                    call .venv\\Scripts\\activate
 
-                    . venv/bin/activate
-
-                    pytest tests/test_e2e_hybrid.py \
-                    -v \
-                    --alluredir=reports/allure-results
-
+                    pytest tests/test_e2e_hybrid.py -v --alluredir=reports/allure-results
                 '''
             }
         }
-
 
         stage('Generate Allure Report') {
 
             steps {
 
                 allure([
-
                     includeProperties: false,
-
-                    reportBuildPolicy: 'ALWAYS',
-
+                    jdk: '',
                     results: [[path: 'reports/allure-results']]
-
                 ])
             }
         }
-
 
         stage('Archive Reports') {
 
             steps {
 
-                archiveArtifacts(
-                    artifacts: 'reports/**/*',
-                    fingerprint: true
-                )
+                archiveArtifacts artifacts: 'reports/**/*', fingerprint: true
 
-                echo "Reports archived successfully"
+                echo 'Reports archived successfully'
             }
         }
     }
 
-
     post {
+
+        always {
+
+            echo 'Pipeline execution completed'
+        }
 
         success {
 
-            echo "All tests passed"
+            echo 'Build completed successfully'
         }
 
         failure {
 
-            echo "Build failed"
-        }
-
-        always {
-
-            echo "Pipeline execution completed"
+            echo 'Build failed'
         }
     }
 }
