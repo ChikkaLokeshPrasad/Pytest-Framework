@@ -1,0 +1,186 @@
+from selenium.webdriver.common.by import By
+from pages.base_page import BasePage
+import logging
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.wait import WebDriverWait
+
+logger = logging.getLogger(__name__)
+
+class ProductPage(BasePage):
+
+    ADD_NOTE_BTN       = (By.CSS_SELECTOR, "button[data-testid='add-new-note']")
+    NOTE_CATEGORY      = (By.CSS_SELECTOR, "select[data-testid='note-category']")
+    NOTE_TITLE         = (By.CSS_SELECTOR, "input[data-testid='note-title']")
+    NOTE_DESCRIPTION   = (By.CSS_SELECTOR, "textarea[data-testid='note-description']")
+    SAVE_NOTE_BTN      = (By.CSS_SELECTOR, "button[data-testid='note-submit']")
+    # SUCCESS_BANNER     = (By.CSS_SELECTOR, "[data-testid='alert-message']")
+    NOTE_CARDS         = (By.CSS_SELECTOR, "[data-testid='note-card']")
+    NOTE_CARD_TITLE    = (By.CSS_SELECTOR, "[data-testid='note-card-title']")
+    DELETE_NOTE_BTN    = (By.CSS_SELECTOR, "button[data-testid='note-delete']")
+    CONFIRM_DELETE_BTN = (By.CSS_SELECTOR, "button[data-testid='note-delete-confirm']")
+    LOGOUT_BTN         = (By.CSS_SELECTOR, "a[data-testid='logout']")
+    EMPTY_NOTE_MSG     = (By.CSS_SELECTOR, "[data-testid='notes-empty']")
+
+    Add_Note_Btn_Fallback = [
+        (By.XPATH, "//a[contains(text(),'Add Note')]"),
+        (By.CSS_SELECTOR, "button[data-testid='add-note']"),
+    ]
+
+    def click_add_note(self):
+
+        self.js_scroll_to(self.ADD_NOTE_BTN)
+
+        try:
+            self.retry_click(self.ADD_NOTE_BTN)
+        except Exception:
+            self.js_click(self.ADD_NOTE_BTN)
+
+        logger.info("Clicked on Add Note button")
+        return self
+    
+    def select_category(self, category="Home"):
+        dropdown_element = self.wait_for_visible(self.NOTE_CATEGORY)
+        select = Select(dropdown_element)
+        if category:
+            select.select_by_visible_text(category)
+            # ↑ "Home" matches <option>Home</option> in the dropdown
+            logger.info(f"Selected category: {category}")
+        else:
+            # If category is None, just leave default selected
+            logger.info("No category specified — using default")
+        
+        return self        
+
+    
+    def enter_title(self, title):
+        self.enter_text(self.NOTE_TITLE, title)
+        logger.info("Entered note title: %s", title)
+        return self
+    
+    def enter_description(self, description):
+        self.enter_text(self.NOTE_DESCRIPTION, description)
+        logger.info("Entered note description")
+        return self
+    
+    def click_save(self):
+        self.js_scroll_to(self.SAVE_NOTE_BTN)
+
+        try:
+            self.retry_click(self.SAVE_NOTE_BTN)
+        except Exception:
+            self.js_click(self.SAVE_NOTE_BTN)
+
+        logger.info("Clicked on Save Note button")
+        return self
+    
+
+    def create_note(self, category, title, description):
+
+            self.click_add_note()
+
+            self.select_category(category)
+
+            self.enter_title(title)
+
+            self.enter_description(description)
+
+            self.click_save()
+
+            # Wait until newly created note title appears
+            locator = (
+                By.XPATH,
+                f"//*[@data-testid='note-card-title' and normalize-space(text())='{title}']"
+            )
+
+            WebDriverWait(self.driver, 10).until(
+                lambda d: d.find_element(*locator).is_displayed()
+            )
+
+            logger.info("Note created successfully: %s", title)
+
+            return self
+    
+    def is_success_banner_visible(self, timeout: int = 10) -> bool:
+        return self.is_element_visible(self.SUCCESS_BANNER, timeout)
+    
+    def get_success_message(self):
+        return self.get_text(self.SUCCESS_BANNER)
+    
+    def get_all_note_titles(self):
+        elements = self.get_elements(self.NOTE_CARD_TITLE)
+        return [el.text.strip() for el in elements]
+
+    def is_note_in_ui(self, title):
+        titles = self.get_all_note_titles()
+        logger.info("Current note titles in UI: %s", titles)
+        return title in titles
+
+    def get_note_count(self):
+        return len(self.get_elements(self.NOTE_CARDS))
+
+    def is_list_empty(self):
+        return (self.is_element_displayed(self.EMPTY_NOTE_MSG) or self.get_note_count() == 0)
+    
+    def logout(self):
+        self.click(self.LOGOUT_BTN)
+        logger.info("Clicked on Logout button")
+        return self
+    
+    def is_dom_updated_without_refresh(self, title: str, timeout: int = 10) -> bool:
+        """Confirm the note title appears in DOM without a page reload."""
+        locator = (By.XPATH,
+                   f"//*[@data-testid='note-card-title' and contains(text(),'{title}')]")
+        return self.is_element_visible(locator, timeout)
+    
+    def click_delete_note(self):
+
+        self.js_scroll_to(self.DELETE_NOTE_BTN)
+
+        try:
+            self.retry_click(self.DELETE_NOTE_BTN)
+        except Exception:
+            self.js_click(self.DELETE_NOTE_BTN)
+
+        return self
+
+
+    def click_confirm_delete(self):
+
+        self.js_scroll_to(self.CONFIRM_DELETE_BTN)
+
+        try:
+            self.retry_click(self.CONFIRM_DELETE_BTN)
+        except Exception:
+            self.js_click(self.CONFIRM_DELETE_BTN)
+
+        return self
+
+
+    def delete_note(self, title):
+
+        old_count = self.get_note_count()
+
+        delete_btn = (
+            By.XPATH,
+            f"""
+            //div[@data-testid='note-card']
+            [.//*[@data-testid='note-card-title'
+            and normalize-space(text())='{title}']]
+            //button[@data-testid='note-delete']
+            """
+        )
+
+        self.js_scroll_to(delete_btn)
+
+        try:
+            self.retry_click(delete_btn)
+        except Exception:
+            self.js_click(delete_btn)
+
+        self.click_confirm_delete()
+
+        WebDriverWait(self.driver, 10).until(
+            lambda d: self.get_note_count() < old_count
+        )
+
+        return self
