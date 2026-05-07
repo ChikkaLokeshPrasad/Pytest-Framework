@@ -6,9 +6,6 @@ pipeline {
 
         HEADLESS = 'true'
 
-        TEST_EMAIL = credentials('notes-app-email')
-
-        TEST_PASSWORD = credentials('notes-app-password')
     }
 
     stages {
