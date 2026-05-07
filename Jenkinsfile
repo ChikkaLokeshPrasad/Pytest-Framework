@@ -54,7 +54,7 @@ pipeline {
                 bat '''
                     call .venv\\Scripts\\activate
 
-                    pytest tests/test_ui_login.py -v --alluredir=reports/allure-results
+                    pytest tests/test_login.py -v --alluredir=reports/allure-results
                 '''
             }
         }
@@ -66,7 +66,7 @@ pipeline {
                 bat '''
                     call .venv\\Scripts\\activate
 
-                    pytest tests/test_ui_notes.py -v --alluredir=reports/allure-results
+                    pytest tests/test_product.py -v --alluredir=reports/allure-results
                 '''
             }
         }
