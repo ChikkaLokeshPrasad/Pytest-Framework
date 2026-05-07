@@ -1,6 +1,4 @@
-"""
-tests/test_e2e_hybrid.py
-"""
+
 
 import time
 import pytest
@@ -30,33 +28,51 @@ class TestUIToAPI:
 
         home = ProductPage(logged_in_driver)
 
-        home.create_note(
-            title=title,
-            description=description,
-            category="Home"
-        )
+        with allure.step("Create note using UI"):
 
-        assert home.is_note_in_ui(title)
+            home.create_note(
+                title=title,
+                description=description,
+                category="Home"
+            )
+
+        with allure.step("Validate note exists in UI"):
+
+            assert home.is_note_in_ui(title)
 
         api = NotesAPIClient()
 
-        api.login(
-            UserEmail,
-            UserPassword
-        )
+        with allure.step("Login using API"):
 
-        response = api.get_notes()
+            api.login(
+                UserEmail,
+                UserPassword
+            )
 
-        note = api.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Fetch notes using API"):
 
-        assert note is not None
+            response = api.get_notes()
 
-        assert note["title"] == title
+        with allure.step("Validate UI note exists in API"):
 
-        assert note["description"] == description
+            note = api.find_note_in_list(
+                response,
+                title
+            )
+
+            allure.attach(
+                str(note),
+                name="api_note_data",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            assert note is not None
+
+            assert note["title"] == title
+
+            assert note["description"] == description
+
+        home.delete_note(title)
 
 
     @allure.story("Check UI API Full Data")
@@ -71,33 +87,49 @@ class TestUIToAPI:
 
         home = ProductPage(logged_in_driver)
 
-        home.create_note(
-            title=title,
-            description=description,
-            category=category
-        )
+        with allure.step("Create note in UI"):
+
+            home.create_note(
+                title=title,
+                description=description,
+                category=category
+            )
 
         api = NotesAPIClient()
 
-        api.login(
-            UserEmail,
-            UserPassword
-        )
+        with allure.step("Login using API"):
 
-        response = api.get_notes()
+            api.login(
+                UserEmail,
+                UserPassword
+            )
 
-        note = api.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Get notes from API"):
 
-        assert note is not None
+            response = api.get_notes()
 
-        assert note["title"] == title
+        with allure.step("Validate note data"):
 
-        assert note["description"] == description
+            note = api.find_note_in_list(
+                response,
+                title
+            )
 
-        assert "id" in note
+            allure.attach(
+                str(note),
+                name="matched_note",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            assert note is not None
+
+            assert note["title"] == title
+
+            assert note["description"] == description
+
+            assert "id" in note
+
+        home.delete_note(title)
 
 
     @allure.story("Check Note Id")
@@ -108,31 +140,41 @@ class TestUIToAPI:
 
         home = ProductPage(logged_in_driver)
 
-        home.create_note(
-            category="Home",
-            title=title,
-            description="Id check"
-        )
+        with allure.step("Create note in UI"):
+
+            home.create_note(
+                category="Home",
+                title=title,
+                description="Id check"
+            )
 
         api = NotesAPIClient()
 
-        api.login(
-            UserEmail,
-            UserPassword
-        )
+        with allure.step("Login using API"):
 
-        response = api.get_notes()
+            api.login(
+                UserEmail,
+                UserPassword
+            )
 
-        note = api.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Fetch notes list"):
 
-        assert note is not None
+            response = api.get_notes()
 
-        assert "id" in note
+        with allure.step("Validate note id exists"):
 
-        assert note["id"] != ""
+            note = api.find_note_in_list(
+                response,
+                title
+            )
+
+            assert note is not None
+
+            assert "id" in note
+
+            assert note["id"] != ""
+
+        home.delete_note(title)
 
 
 @allure.feature("E2E UI API")
@@ -148,43 +190,55 @@ class TestAPIToUI:
 
         home = ProductPage(logged_in_driver)
 
-        home.create_note(
-            category="Home",
-            title=title,
-            description="Delete test"
-        )
+        with allure.step("Create note using UI"):
 
-        assert home.is_note_in_ui(title)
+            home.create_note(
+                category="Home",
+                title=title,
+                description="Delete test"
+            )
+
+        with allure.step("Validate note exists in UI"):
+
+            assert home.is_note_in_ui(title)
 
         api = NotesAPIClient()
 
-        api.login(
-            UserEmail,
-            UserPassword
-        )
+        with allure.step("Login using API"):
 
-        response = api.get_notes()
+            api.login(
+                UserEmail,
+                UserPassword
+            )
 
-        note = api.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Fetch notes from API"):
 
-        assert note is not None
+            response = api.get_notes()
 
-        note_id = note["id"]
+            note = api.find_note_in_list(
+                response,
+                title
+            )
 
-        delete_response = api.delete_note(
-            note_id
-        )
+            assert note is not None
 
-        assert delete_response.status_code in [200, 204]
+            note_id = note["id"]
 
-        home.driver.refresh()
+        with allure.step("Delete note using API"):
 
-        home.wait_for_dom_ready()
+            delete_response = api.delete_note(
+                note_id
+            )
 
-        assert not home.is_note_in_ui(title)
+            assert delete_response.status_code in [200, 204]
+
+        with allure.step("Refresh UI and validate deletion"):
+
+            home.driver.refresh()
+
+            home.wait_for_dom_ready()
+
+            assert not home.is_note_in_ui(title)
 
 
     @allure.story("Check Count After Delete")
@@ -195,39 +249,55 @@ class TestAPIToUI:
 
         home = ProductPage(logged_in_driver)
 
-        home.create_note(
-            category="Home",
-            title=title,
-            description="Count test"
-        )
+        with allure.step("Create note in UI"):
 
-        count_before = home.get_note_count()
+            home.create_note(
+                category="Home",
+                title=title,
+                description="Count test"
+            )
+
+        with allure.step("Capture note count before delete"):
+
+            count_before = home.get_note_count()
 
         api = NotesAPIClient()
 
-        api.login(
-            UserEmail,
-            UserPassword
-        )
+        with allure.step("Login using API"):
 
-        response = api.get_notes()
+            api.login(
+                UserEmail,
+                UserPassword
+            )
 
-        note = api.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Delete note using API"):
 
-        assert note is not None
+            response = api.get_notes()
 
-        api.delete_note(note["id"])
+            note = api.find_note_in_list(
+                response,
+                title
+            )
 
-        home.driver.refresh()
+            assert note is not None
 
-        home.wait_for_dom_ready()
+            api.delete_note(note["id"])
 
-        count_after = home.get_note_count()
+        with allure.step("Refresh UI and validate count"):
 
-        assert count_after < count_before
+            home.driver.refresh()
+
+            home.wait_for_dom_ready()
+
+            count_after = home.get_note_count()
+
+            allure.attach(
+                f"Before Delete: {count_before}\nAfter Delete: {count_after}",
+                name="note_count",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
+            assert count_after < count_before
 
 
     @allure.story("Deleted Note Not In API")
@@ -238,35 +308,43 @@ class TestAPIToUI:
 
         home = ProductPage(logged_in_driver)
 
-        home.create_note(
-            category="Home",
-            title=title,
-            description="Remove test"
-        )
+        with allure.step("Create note in UI"):
+
+            home.create_note(
+                category="Home",
+                title=title,
+                description="Remove test"
+            )
 
         api = NotesAPIClient()
 
-        api.login(
-            UserEmail,
-            UserPassword
-        )
+        with allure.step("Login using API"):
 
-        response = api.get_notes()
+            api.login(
+                UserEmail,
+                UserPassword
+            )
 
-        note = api.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Delete created note"):
 
-        assert note is not None
+            response = api.get_notes()
 
-        api.delete_note(note["id"])
+            note = api.find_note_in_list(
+                response,
+                title
+            )
 
-        new_response = api.get_notes()
+            assert note is not None
 
-        deleted_note = api.find_note_in_list(
-            new_response,
-            title
-        )
+            api.delete_note(note["id"])
 
-        assert deleted_note is None
+        with allure.step("Validate deleted note not present in API"):
+
+            new_response = api.get_notes()
+
+            deleted_note = api.find_note_in_list(
+                new_response,
+                title
+            )
+
+            assert deleted_note is None

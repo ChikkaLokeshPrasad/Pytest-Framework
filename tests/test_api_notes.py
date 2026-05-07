@@ -1,6 +1,3 @@
-"""
-tests/test_api_notes.py
-"""
 
 import time
 import pytest
@@ -18,38 +15,60 @@ class TestAPIGetNotes:
     @allure.severity(allure.severity_level.CRITICAL)
     def test_get_notes_status_200(self, api_client):
 
-        response = api_client.get_notes()
+        with allure.step("Send GET /notes request"):
 
-        assert response.status_code == 200, \
-            f"Expected 200 but got {response.status_code}"
+            response = api_client.get_notes()
+
+        with allure.step("Validate status code is 200"):
+
+            allure.attach(
+                str(response.status_code),
+                name="status_code",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
+            assert response.status_code == 200, \
+                f"Expected 200 but got {response.status_code}"
 
 
     @allure.story("Get Notes - Response Structure")
     @allure.severity(allure.severity_level.NORMAL)
     def test_get_notes_response_structure(self, api_client):
 
-        response = api_client.get_notes()
+        with allure.step("Send GET /notes request"):
 
-        body = response.json()
+            response = api_client.get_notes()
 
-        assert "data" in body, \
-            "'data' key missing in response"
+            body = response.json()
 
-        assert isinstance(body["data"], list), \
-            "'data' is not a list"
+        with allure.step("Validate response contains data list"):
+
+            allure.attach(
+                str(body),
+                name="response_body",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            assert "data" in body, \
+                "'data' key missing in response"
+
+            assert isinstance(body["data"], list), \
+                "'data' is not a list"
 
 
     @allure.story("Get Notes - Response Time")
     @allure.severity(allure.severity_level.MINOR)
     def test_get_notes_response_time(self, api_client):
 
-        start = time.time()
+        with allure.step("Measure GET /notes response time"):
 
-        response = api_client.get_notes()
+            start = time.time()
 
-        end = time.time()
+            response = api_client.get_notes()
 
-        total_time = end - start
+            end = time.time()
+
+            total_time = end - start
 
         allure.attach(
             str(total_time),
@@ -57,10 +76,12 @@ class TestAPIGetNotes:
             attachment_type=allure.attachment_type.TEXT
         )
 
-        assert response.status_code == 200
+        with allure.step("Validate response time"):
 
-        assert total_time < 2, \
-            f"API too slow. Time taken: {total_time}"
+            assert response.status_code == 200
+
+            assert total_time < 2, \
+                f"API too slow. Time taken: {total_time}"
 
 
 @allure.feature("API - Notes")
@@ -74,14 +95,24 @@ class TestAPICreateNote:
 
         title = f"API Note {int(time.time())}"
 
-        response = api_client.create_note(
-            title=title,
-            description="Created using API test",
-            category="Home"
-        )
+        with allure.step("Create note using API"):
 
-        assert response.status_code in [200, 201], \
-            f"Expected 200 or 201 but got {response.status_code}"
+            response = api_client.create_note(
+                title=title,
+                description="Created using API test",
+                category="Home"
+            )
+
+        with allure.step("Validate note created successfully"):
+
+            allure.attach(
+                response.text,
+                name="create_note_response",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            assert response.status_code in [200, 201], \
+                f"Expected 200 or 201 but got {response.status_code}"
 
 
     @allure.story("Create Note - Verify Data")
@@ -92,24 +123,34 @@ class TestAPICreateNote:
 
         description = "Checking response data"
 
-        response = api_client.create_note(
-            title=title,
-            description=description,
-            category="Work"
-        )
+        with allure.step("Create note using API"):
 
-        body = response.json()
+            response = api_client.create_note(
+                title=title,
+                description=description,
+                category="Work"
+            )
 
-        data = body.get("data", {})
+            body = response.json()
 
-        assert data.get("title") == title, \
-            "Title mismatch"
+            data = body.get("data", {})
 
-        assert data.get("description") == description, \
-            "Description mismatch"
+        with allure.step("Validate note data"):
 
-        assert "id" in data, \
-            "Id missing in response"
+            allure.attach(
+                str(data),
+                name="note_data",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+            assert data.get("title") == title, \
+                "Title mismatch"
+
+            assert data.get("description") == description, \
+                "Description mismatch"
+
+            assert "id" in data, \
+                "Id missing in response"
 
 
     @allure.story("Create Note - Verify In Notes List")
@@ -118,21 +159,27 @@ class TestAPICreateNote:
 
         title = f"List Check {int(time.time())}"
 
-        api_client.create_note(
-            title=title,
-            description="Check note in list",
-            category="Personal"
-        )
+        with allure.step("Create note using API"):
 
-        response = api_client.get_notes()
+            api_client.create_note(
+                title=title,
+                description="Check note in list",
+                category="Personal"
+            )
 
-        note = api_client.find_note_in_list(
-            response,
-            title
-        )
+        with allure.step("Fetch notes list"):
 
-        assert note is not None, \
-            f"Note '{title}' not found in notes list"
+            response = api_client.get_notes()
+
+        with allure.step("Validate created note exists in notes list"):
+
+            note = api_client.find_note_in_list(
+                response,
+                title
+            )
+
+            assert note is not None, \
+                f"Note '{title}' not found in notes list"
 
 
     @allure.story("Create Note - Empty Title")
@@ -140,14 +187,18 @@ class TestAPICreateNote:
     @pytest.mark.negative
     def test_create_note_empty_title(self, api_client):
 
-        response = api_client.create_note(
-            title="",
-            description="No title",
-            category="Home"
-        )
+        with allure.step("Send invalid create note request"):
 
-        assert response.status_code in [400, 422], \
-            f"Expected 400 or 422 but got {response.status_code}"
+            response = api_client.create_note(
+                title="",
+                description="No title",
+                category="Home"
+            )
+
+        with allure.step("Validate validation error"):
+
+            assert response.status_code in [400, 422], \
+                f"Expected 400 or 422 but got {response.status_code}"
 
 
     @allure.story("Create Note Without Login")
@@ -157,13 +208,17 @@ class TestAPICreateNote:
 
         client = NotesAPIClient()
 
-        response = client.create_note(
-            title="Unauthorized",
-            description="Should fail"
-        )
+        with allure.step("Create note without authentication"):
 
-        assert response.status_code == 401, \
-            f"Expected 401 but got {response.status_code}"
+            response = client.create_note(
+                title="Unauthorized",
+                description="Should fail"
+            )
+
+        with allure.step("Validate unauthorized response"):
+
+            assert response.status_code == 401, \
+                f"Expected 401 but got {response.status_code}"
 
 
 @allure.feature("API - Notes")
@@ -177,19 +232,25 @@ class TestAPIDeleteNote:
 
         title = f"Delete Note {int(time.time())}"
 
-        create_response = api_client.create_note(
-            title=title,
-            description="Will be deleted"
-        )
+        with allure.step("Create note before delete"):
 
-        body = create_response.json()
+            create_response = api_client.create_note(
+                title=title,
+                description="Will be deleted"
+            )
 
-        note_id = body["data"]["id"]
+            body = create_response.json()
 
-        delete_response = api_client.delete_note(note_id)
+            note_id = body["data"]["id"]
 
-        assert delete_response.status_code in [200, 204], \
-            f"Expected 200 or 204 but got {delete_response.status_code}"
+        with allure.step("Delete created note"):
+
+            delete_response = api_client.delete_note(note_id)
+
+        with allure.step("Validate delete response"):
+
+            assert delete_response.status_code in [200, 204], \
+                f"Expected 200 or 204 but got {delete_response.status_code}"
 
 
     @allure.story("Deleted Note Not In List")
@@ -198,24 +259,32 @@ class TestAPIDeleteNote:
 
         title = f"Delete Check {int(time.time())}"
 
-        create_response = api_client.create_note(
-            title=title,
-            description="Delete verification"
-        )
+        with allure.step("Create note before delete"):
 
-        note_id = create_response.json()["data"]["id"]
+            create_response = api_client.create_note(
+                title=title,
+                description="Delete verification"
+            )
 
-        api_client.delete_note(note_id)
+            note_id = create_response.json()["data"]["id"]
 
-        response = api_client.get_notes()
+        with allure.step("Delete created note"):
 
-        note = api_client.find_note_in_list(
-            response,
-            title
-        )
+            api_client.delete_note(note_id)
 
-        assert note is None, \
-            f"Deleted note '{title}' still present"
+        with allure.step("Fetch updated notes list"):
+
+            response = api_client.get_notes()
+
+        with allure.step("Validate deleted note not present"):
+
+            note = api_client.find_note_in_list(
+                response,
+                title
+            )
+
+            assert note is None, \
+                f"Deleted note '{title}' still present"
 
 
     @allure.story("Delete Invalid Note")
@@ -223,9 +292,13 @@ class TestAPIDeleteNote:
     @pytest.mark.negative
     def test_delete_invalid_note(self, api_client):
 
-        response = api_client.delete_note(
-            "000000000000000000000000"
-        )
+        with allure.step("Delete invalid note id"):
 
-        assert response.status_code in [400, 404], \
-            f"Expected 400 or 404 but got {response.status_code}"
+            response = api_client.delete_note(
+                "000000000000000000000000"
+            )
+
+        with allure.step("Validate error response"):
+
+            assert response.status_code in [400, 404], \
+                f"Expected 400 or 404 but got {response.status_code}"
