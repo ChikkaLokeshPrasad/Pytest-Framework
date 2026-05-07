@@ -6,7 +6,7 @@ pipeline {
 
         HEADLESS = 'true'
 
-        // REMOTE = 'true'
+        REMOTE = 'false'
     }
 
     stages {
@@ -21,15 +21,15 @@ pipeline {
             }
         }
 
-        stage('Start Selenium Grid') {
+        // stage('Start Selenium Grid') {
 
-            steps {
+        //     steps {
 
-                bat '''
-                    docker-compose up -d
-                '''
-            }
-        }
+        //         bat '''
+        //             docker-compose up -d
+        //         '''
+        //     }
+        // }
 
         stage('Install Dependencies') {
 
@@ -61,7 +61,9 @@ pipeline {
 
                     pytest tests/test_api_notes.py -v --alluredir=reports/allure-results
                 '''
+                }
             }
+
         }
 
         stage('Run UI Login Tests') {
@@ -127,9 +129,9 @@ pipeline {
 
         always {
 
-            bat '''
-                docker-compose down
-            '''
+            // bat '''
+            //     docker-compose down
+            // '''
 
             echo 'Pipeline execution completed'
         }
@@ -144,4 +146,5 @@ pipeline {
             echo 'Build failed'
         }
     }
+}
 }
