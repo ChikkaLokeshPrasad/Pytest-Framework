@@ -35,7 +35,7 @@ class LoginPage(BasePage):
         return self
     
     def click_login(self):
-        el = self.click(self.Login_Button_Primary)
+        el = self.safe_click(self.Login_Button_Primary)
         return self
     
     def login(self, email, password):

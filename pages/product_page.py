@@ -1,3 +1,5 @@
+import time
+
 from selenium.webdriver.common.by import By
 from pages.base_page import BasePage
 import logging
@@ -86,6 +88,8 @@ class ProductPage(BasePage):
 
             self.click_save()
 
+            time.sleep(2)
+
             # Wait until newly created note title appears
             locator = (
                 By.XPATH,
@@ -122,7 +126,7 @@ class ProductPage(BasePage):
         return (self.is_element_displayed(self.EMPTY_NOTE_MSG) or self.get_note_count() == 0)
     
     def logout(self):
-        self.click(self.LOGOUT_BTN)
+        self.safe_click(self.LOGOUT_BTN)
         logger.info("Clicked on Logout button")
         return self
     

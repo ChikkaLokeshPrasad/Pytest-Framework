@@ -6,6 +6,8 @@ import os
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from config.config import TimeOut
+from selenium.common.exceptions import ElementClickInterceptedException
+
 
 
 class BasePage:
@@ -172,7 +174,7 @@ class BasePage:
         last_error = None
         for attempt in range(1, retries + 1):
             try:
-                self.click(locator)
+                self.safe_click(locator)
                 return  # clicked successfully — stop here
             except Exception as e:
                 last_error = e
@@ -234,3 +236,39 @@ class BasePage:
         self.driver.save_screenshot(path)
         logger.info(f"Screenshot saved: {path}")
         return path
+    
+
+    def safe_click(
+        self,
+        locator,
+        retries=3
+    ):
+
+        for _ in range(retries):
+
+            try:
+
+                element = self.wait_for_clickable(locator)
+
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center'});",
+                    element
+                )
+
+                time.sleep(1)
+
+                element.click()
+
+                return
+
+            except ElementClickInterceptedException:
+
+                time.sleep(1)
+
+        element = self.wait_for_visible(locator)
+
+        self.driver.execute_script(
+            "arguments[0].click();",
+            element
+        )
+        

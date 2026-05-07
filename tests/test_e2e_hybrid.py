@@ -36,6 +36,8 @@ class TestUIToAPI:
                 category="Home"
             )
 
+        home.wait_for_dom_ready()
+
         with allure.step("Validate note exists in UI"):
 
             assert home.is_note_in_ui(title)

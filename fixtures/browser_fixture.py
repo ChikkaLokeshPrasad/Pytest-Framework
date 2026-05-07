@@ -5,8 +5,10 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from api_client.notes_client import NotesAPIClient
+
 import os
 import allure
+
 
 # --------------------------------
 # Selenium Driver Fixture
@@ -14,15 +16,34 @@ import allure
 @pytest.fixture
 def driver():
 
-    service = Service(ChromeDriverManager().install())
+    options = webdriver.ChromeOptions()
 
-    driver = webdriver.Chrome(service=service)
+    options.add_argument("--start-maximized")
 
-    driver.maximize_window()
+    options.add_argument("--disable-notifications")
+
+    options.add_argument("--disable-popup-blocking")
+
+    options.add_argument("--window-size=1920,1080")
+
+    service = Service(
+        ChromeDriverManager().install()
+    )
+
+    driver = webdriver.Chrome(
+        service=service,
+        options=options
+    )
+
+    driver.implicitly_wait(5)
 
     yield driver
 
-    driver.quit()
+    try:
+        driver.quit()
+
+    except Exception:
+        pass
 
 
 # --------------------------------
@@ -32,6 +53,7 @@ def driver():
 def logged_in_driver(driver):
 
     from pages.login_page import LoginPage
+
     from config.config import (
         UserEmail,
         UserPassword
@@ -39,9 +61,14 @@ def logged_in_driver(driver):
 
     page = LoginPage(driver).open()
 
-    page.login(UserEmail, UserPassword)
+    page.login(
+        UserEmail,
+        UserPassword
+    )
 
-    page.wait_for_url_contains("notes/app")
+    page.wait_for_url_contains(
+        "notes/app"
+    )
 
     return driver
 
@@ -59,7 +86,6 @@ def api_client():
 
     client = NotesAPIClient()
 
-    # login and store token
     client.login(
         email=UserEmail,
         password=UserPassword
@@ -68,9 +94,9 @@ def api_client():
     return client
 
 
-
-
-
+# --------------------------------
+# Screenshot On Failure
+# --------------------------------
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(
     item,
@@ -81,13 +107,14 @@ def pytest_runtest_makereport(
 
     report = outcome.get_result()
 
-    # Only capture on test failure
     if (
         report.when == "call"
         and report.failed
     ):
 
-        driver = item.funcargs.get("driver")
+        driver = item.funcargs.get(
+            "driver"
+        )
 
         if driver:
 
@@ -105,12 +132,10 @@ def pytest_runtest_makereport(
                 f"{item.name}.png"
             )
 
-            # Save screenshot
             driver.save_screenshot(
                 screenshot_path
             )
 
-            # Attach to Allure
             allure.attach.file(
                 screenshot_path,
                 name="Failure Screenshot",
