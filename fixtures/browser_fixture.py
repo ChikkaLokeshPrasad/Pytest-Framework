@@ -26,14 +26,35 @@ def driver():
 
     options.add_argument("--window-size=1920,1080")
 
-    service = Service(
-        ChromeDriverManager().install()
-    )
+    options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Chrome(
-        service=service,
-        options=options
-    )
+    use_remote = os.getenv(
+        "REMOTE",
+        "false"
+    ).lower() == "true"
+
+    # --------------------------------
+    # Remote Docker Selenium Grid
+    # --------------------------------
+    if use_remote:
+
+        driver = webdriver.Remote(
+
+            command_executor=
+            "http://localhost:4444/wd/hub",
+
+            options=options
+        )
+    else:
+
+        service = Service(
+            ChromeDriverManager().install()
+        )
+
+        driver = webdriver.Chrome(
+            service=service,
+            options=options
+        )
 
     driver.implicitly_wait(5)
 

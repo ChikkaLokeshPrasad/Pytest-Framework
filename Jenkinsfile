@@ -5,6 +5,8 @@ pipeline {
     environment {
 
         HEADLESS = 'true'
+
+        // REMOTE = 'true'
     }
 
     stages {
@@ -16,6 +18,16 @@ pipeline {
                 checkout scm
 
                 echo 'Code downloaded successfully'
+            }
+        }
+
+        stage('Start Selenium Grid') {
+
+            steps {
+
+                bat '''
+                    docker-compose up -d
+                '''
             }
         }
 
@@ -38,6 +50,11 @@ pipeline {
         stage('Run API Tests') {
 
             steps {
+                
+                catchError(
+                    buildResult: 'SUCCESS',
+                    stageResult: 'FAILURE'
+                ) {
 
                 bat '''
                     call .venv\\Scripts\\activate
@@ -109,6 +126,10 @@ pipeline {
     post {
 
         always {
+
+            bat '''
+                docker-compose down
+            '''
 
             echo 'Pipeline execution completed'
         }

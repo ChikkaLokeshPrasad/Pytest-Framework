@@ -105,6 +105,8 @@ class TestUIToAPI:
                 UserEmail,
                 UserPassword
             )
+        
+        time.sleep(2)
 
         with allure.step("Get notes from API"):
 

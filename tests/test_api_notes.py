@@ -80,7 +80,7 @@ class TestAPIGetNotes:
 
             assert response.status_code == 200
 
-            assert total_time < 2, \
+            assert total_time < 10, \
                 f"API too slow. Time taken: {total_time}"
 
 

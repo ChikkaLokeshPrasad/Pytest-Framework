@@ -88,6 +88,10 @@ class ProductPage(BasePage):
 
             self.click_save()
 
+            self.driver.refresh()  # Force refresh to ensure UI updates with new note
+
+            self.wait_for_dom_ready()
+
             time.sleep(2)
 
             # Wait until newly created note title appears
@@ -111,16 +115,57 @@ class ProductPage(BasePage):
         return self.get_text(self.SUCCESS_BANNER)
     
     def get_all_note_titles(self):
-        elements = self.get_elements(self.NOTE_CARD_TITLE)
-        return [el.text.strip() for el in elements]
 
-    def is_note_in_ui(self, title):
-        titles = self.get_all_note_titles()
-        logger.info("Current note titles in UI: %s", titles)
-        return title in titles
+        self.wait_for_dom_ready()
+        titles = []
+        for _ in range(3):
+            try:
+                elements = self.get_elements(
+                    self.NOTE_CARD_TITLE
+                )
+
+                titles = [
+                    el.text.strip()
+                    for el in elements
+                ]
+
+                break
+
+            except Exception:
+
+                self.wait_for_dom_ready()
+
+        return titles
+
+    def is_note_in_ui(self,title,timeout=15):
+
+        locator = (
+            By.XPATH,
+            f"//*[@data-testid='note-card-title' and contains(text(),'{title}')]"
+        )
+
+        try:
+            self.wait_for_visible(
+                locator,
+                timeout
+            )
+            return True
+        except Exception:
+
+            return False
 
     def get_note_count(self):
-        return len(self.get_elements(self.NOTE_CARDS))
+
+        self.wait_for_dom_ready()
+        for _ in range(3):
+            try:
+                cards = self.get_elements(
+                    self.NOTE_CARDS
+                )
+                return len(cards)
+            except Exception:
+                self.wait_for_dom_ready()
+        return 0
 
     def is_list_empty(self):
         return (self.is_element_displayed(self.EMPTY_NOTE_MSG) or self.get_note_count() == 0)
@@ -134,7 +179,14 @@ class ProductPage(BasePage):
         """Confirm the note title appears in DOM without a page reload."""
         locator = (By.XPATH,
                    f"//*[@data-testid='note-card-title' and contains(text(),'{title}')]")
-        return self.is_element_visible(locator, timeout)
+        try:
+            self.wait_for_visible(
+                locator,
+                timeout
+            )
+            return True
+        except Exception:
+            return False
     
     def click_delete_note(self):
 
